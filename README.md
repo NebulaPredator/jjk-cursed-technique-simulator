@@ -38,7 +38,7 @@ No installs, no bundlers. Just open it.
 
 ```bash
 # Clone the repo
-git clone https://github.com/YOUR_USERNAME/cursed-technique-simulator.git
+git clone https://github.com/NebulaPredator/cursed-technique-simulator.git
 
 # Open in browser
 cd cursed-technique-simulator
