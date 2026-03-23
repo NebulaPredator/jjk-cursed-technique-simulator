@@ -1,0 +1,321 @@
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 55;
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+composer.addPass(bloomPass);
+
+const COUNT = 20000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(COUNT * 3);
+const colors = new Float32Array(COUNT * 3);
+const sizes = new Float32Array(COUNT);
+const targetPositions = new Float32Array(COUNT * 3);
+const targetColors = new Float32Array(COUNT * 3);
+const targetSizes = new Float32Array(COUNT);
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+const particles = new THREE.Points(geometry, new THREE.PointsMaterial({
+    size: 0.3, vertexColors: true,
+    blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false
+}));
+scene.add(particles);
+
+function getRed(i) {
+    if (i < COUNT * 0.1) {
+        const r = Math.random() * 9;
+        const theta = Math.random() * 6.28; const phi = Math.acos(2 * Math.random() - 1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r: 3, g: 0.1, b: 0.1, s: 2.5 };
+    } else {
+        const armCount = 3; const t = (i / COUNT);
+        const angle = t * 15 + ((i % armCount) * (Math.PI * 2 / armCount));
+        const radius = 2 + (t * 40);
+        return { x: radius*Math.cos(angle), y: radius*Math.sin(angle), z: (Math.random()-0.5)*(10*t), r: 0.8, g: 0, b: 0, s: 1.0 };
+    }
+}
+
+function getVoid(i) {
+    if (i < COUNT * 0.15) {
+        const angle = Math.random() * Math.PI * 2;
+        return { x: 26*Math.cos(angle), y: 26*Math.sin(angle), z: (Math.random()-0.5)*1, r: 1, g: 1, b: 1, s: 2.5 };
+    } else {
+        const radius = 30 + Math.random() * 90;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.acos(2 * Math.random() - 1);
+        return { x: radius*Math.sin(phi)*Math.cos(theta), y: radius*Math.sin(phi)*Math.sin(theta), z: radius*Math.cos(phi), r: 0.1, g: 0.6, b: 1.0, s: 0.7 };
+    }
+}
+
+function getPurple(i) {
+    if (Math.random() > 0.8) return { x: (Math.random()-0.5)*100, y: (Math.random()-0.5)*100, z: (Math.random()-0.5)*100, r: 0.5, g: 0.5, b: 0.7, s: 0.8 };
+    const r = 20; const theta = Math.random() * Math.PI * 2; const phi = Math.acos(2 * Math.random() - 1);
+    return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r: 0.6, g: 0.5, b: 1.0, s: 2.5 };
+}
+
+function getShrine(i) {
+    const total = COUNT;
+    if (i < total * 0.3) return { x: (Math.random()-0.5)*80, y: -15, z: (Math.random()-0.5)*80, r: 0.4, g: 0, b: 0, s: 0.8 };
+    else if (i < total * 0.4) {
+        const px = ((i%4)<2?1:-1)*12; const pz = ((i%4)%2==0?1:-1)*8;
+        return { x: px+(Math.random()-0.5)*2, y: -15+Math.random()*30, z: pz+(Math.random()-0.5)*2, r: 0.2, g: 0.2, b: 0.2, s: 0.6 };
+    } else if (i < total * 0.6) {
+        const t = Math.random() * Math.PI * 2; const rad = Math.random() * 30;
+        const curve = Math.pow(rad/30, 2) * 10;
+        return { x: rad*Math.cos(t), y: 15-curve+(Math.random()*2), z: rad*Math.sin(t)*0.6, r: 0.6, g: 0, b: 0, s: 0.6 };
+    } else return { x: 0, y: 0, z: 0, r: 0, g: 0, b: 0, s: 0 };
+}
+
+function getBlue(i) {
+    if (i < COUNT * 0.08) {
+        const r = Math.random() * 4;
+        const theta = Math.random() * 6.28; const phi = Math.acos(2*Math.random()-1);
+        return { x: r*Math.sin(phi)*Math.cos(theta), y: r*Math.sin(phi)*Math.sin(theta), z: r*Math.cos(phi), r: 0.1, g: 0.7, b: 3.0, s: 3.5 };
+    } else {
+        const armCount = 3;
+        const t = ((i - COUNT * 0.08) / (COUNT * 0.92));
+        const angle = t * 18 + ((i % armCount) * (Math.PI * 2 / armCount));
+        const radius = 48 - (t * 44);
+        return { x: radius*Math.cos(angle), y: radius*Math.sin(angle), z: (Math.random()-0.5)*(6*t), r: 0.0, g: 0.35, b: 1.2, s: 0.85 };
+    }
+}
+
+function getTenShadows(i) {
+    const beastPositions = [[-24, -6], [0, 10], [24, -6]];
+    const perBeast = Math.floor(COUNT * 0.25);
+    const beastIdx = Math.min(2, Math.floor(i / perBeast));
+    const [bx, by] = beastPositions[beastIdx];
+    if (i < COUNT * 0.75) {
+        const r = 3 + Math.random() * 7;
+        const theta = Math.random() * 6.28; const phi = Math.acos(2*Math.random()-1);
+        return { x: bx + r*Math.sin(phi)*Math.cos(theta), y: by + r*Math.sin(phi)*Math.sin(theta) * 1.6, z: r*Math.cos(phi) * 0.35, r: 0.25, g: 0.0, b: 0.4, s: 1.1 };
+    } else {
+        return { x: (Math.random()-0.5)*110, y: (Math.random()-0.5)*110, z: (Math.random()-0.5)*40, r: 0.06, g: 0.0, b: 0.1, s: 0.22 };
+    }
+}
+
+function getTransfiguration(i) {
+    if (i < COUNT * 0.5) {
+        const figCount = 5;
+        const figIdx = i % figCount;
+        const fx = (figIdx - 2) * 14;
+        const t = Math.floor(i / figCount) / ((COUNT * 0.5) / figCount);
+        const distortX = Math.sin(t * Math.PI * 5 + figIdx * 1.3) * 4.5;
+        const distortZ = Math.cos(t * Math.PI * 3 + figIdx) * 2;
+        return { x: fx + distortX + (Math.random()-0.5)*1.8, y: -12 + t * 24 + (Math.random()-0.5)*1.2, z: distortZ, r: 1.0, g: 0.2 + Math.random()*0.2, b: 0.35, s: 1.3 };
+    } else {
+        const theta = Math.random() * Math.PI * 2;
+        const r = 18 + Math.random() * 38;
+        return { x: r*Math.cos(theta) + (Math.random()-0.5)*10, y: r*Math.sin(theta) + (Math.random()-0.5)*10, z: (Math.random()-0.5)*18, r: 0.45, g: 0.0, b: 0.18, s: 0.28 };
+    }
+}
+
+function getBlackFlash(i) {
+    const ringCount = 5;
+    const perRing = Math.floor(COUNT / ringCount);
+    const ring = Math.min(ringCount - 1, Math.floor(i / perRing));
+    const radius = 5 + ring * 10;
+    const theta = Math.random() * Math.PI * 2;
+    const scatter = (Math.random()-0.5) * (ring + 1) * 1.8;
+    const scatterZ = (Math.random()-0.5) * (ring * 0.5);
+    const rVal = ring === 0 ? 0.05 : 1.0;
+    const gVal = ring === 0 ? 0.0 : Math.max(0, 0.65 - ring * 0.1);
+    const sVal = ring === 0 ? 4.0 : 2.5 - ring * 0.35;
+    return { x: (radius + scatter) * Math.cos(theta), y: (radius + scatter) * Math.sin(theta), z: scatterZ, r: rVal, g: gVal, b: 0.0, s: sVal };
+}
+
+let currentTech = 'neutral';
+let shakeIntensity = 0;
+const videoElement = document.querySelector('.input_video');
+const canvasElement = document.getElementById('output_canvas');
+const canvasCtx = canvasElement.getContext('2d');
+let glowColor = '#00ffff';
+
+const hands = new Hands({ locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}` });
+hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.7 });
+
+hands.onResults((results) => {
+    canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+    let detected = 'neutral';
+
+    if (results.multiHandLandmarks) {
+        results.multiHandLandmarks.forEach((lm) => {
+            drawConnectors(canvasCtx, lm, HAND_CONNECTIONS, { color: glowColor, lineWidth: 5 });
+            drawLandmarks(canvasCtx, lm, { color: '#fff', lineWidth: 1, radius: 2 });
+
+            const isUp = (t, p) => lm[t].y < lm[p].y;
+            const pinch = Math.hypot(lm[8].x - lm[4].x, lm[8].y - lm[4].y);
+
+            const idx  = isUp(8, 6);
+            const mid  = isUp(12, 10);
+            const ring = isUp(16, 14);
+            const pink = isUp(20, 18);
+
+            if (pinch < 0.04)                                        detected = 'purple';
+            else if (idx && mid && ring && pink)                     detected = 'shrine';
+            else if (idx && !mid && !ring && pink)                   detected = 'ten_shadows';
+            else if (idx && mid && !ring)                            detected = 'void';
+            else if (!idx && !mid && ring && pink)                   detected = 'blue';
+            else if (!idx && mid && !ring && !pink)                  detected = 'transfiguration';
+            else if (!idx && !mid && !ring && !pink && pinch > 0.08) detected = 'black_flash';
+            else if (idx && !mid)                                    detected = 'red';
+        });
+    }
+
+    updateState(detected);
+});
+
+function updateState(tech) {
+    if (currentTech === tech) return;
+    currentTech = tech;
+
+    const nameEl = document.getElementById('technique-name');
+    shakeIntensity = tech !== 'neutral' ? 0.4 : 0;
+
+    if (tech === 'shrine') {
+        glowColor = '#ff0000'; nameEl.innerText = "Domain Expansion: Malevolent Shrine";
+        nameEl.style.color = '#ff4444'; bloomPass.strength = 2.5; shakeIntensity = 0.6;
+    } else if (tech === 'purple') {
+        glowColor = '#bb00ff'; nameEl.innerText = "Secret Technique: Hollow Purple";
+        nameEl.style.color = '#bb00ff'; bloomPass.strength = 4.0; shakeIntensity = 0.8;
+    } else if (tech === 'void') {
+        glowColor = '#00ffff'; nameEl.innerText = "Domain Expansion: Infinite Void";
+        nameEl.style.color = '#00ffff'; bloomPass.strength = 2.0;
+    } else if (tech === 'red') {
+        glowColor = '#ff3333'; nameEl.innerText = "Reverse Cursed Technique: Red";
+        nameEl.style.color = '#ff3333'; bloomPass.strength = 2.5;
+    } else if (tech === 'blue') {
+        glowColor = '#0088ff'; nameEl.innerText = "Limitless: Blue";
+        nameEl.style.color = '#0099ff'; bloomPass.strength = 3.2; shakeIntensity = 0.5;
+    } else if (tech === 'ten_shadows') {
+        glowColor = '#6600cc'; nameEl.innerText = "Ten Shadows Technique";
+        nameEl.style.color = '#8833ff'; bloomPass.strength = 1.6;
+    } else if (tech === 'transfiguration') {
+        glowColor = '#ff4466'; nameEl.innerText = "Idle Transfiguration";
+        nameEl.style.color = '#ff4466'; bloomPass.strength = 2.8; shakeIntensity = 0.3;
+    } else if (tech === 'black_flash') {
+        glowColor = '#ff8800'; nameEl.innerText = "Black Flash";
+        nameEl.style.color = '#ffaa00'; bloomPass.strength = 4.5; shakeIntensity = 1.0;
+    } else {
+        glowColor = '#00ffff'; nameEl.innerText = "Neutral State";
+        nameEl.style.color = '#00ffff'; bloomPass.strength = 1.0; shakeIntensity = 0;
+    }
+
+    for (let i = 0; i < COUNT; i++) {
+        let p;
+        if (tech === 'neutral') {
+            if (i < COUNT * 0.05) {
+                const r = 15 + Math.random()*20; const t = Math.random()*6.28; const ph = Math.random()*3.14;
+                p = { x: r*Math.sin(ph)*Math.cos(t), y: r*Math.sin(ph)*Math.sin(t), z: r*Math.cos(ph), r: 0.1, g: 0.1, b: 0.2, s: 0.4 };
+            } else {
+                p = { x: 0, y: 0, z: 0, r: 0, g: 0, b: 0, s: 0 };
+            }
+        }
+        else if (tech === 'red')             p = getRed(i);
+        else if (tech === 'void')            p = getVoid(i);
+        else if (tech === 'purple')          p = getPurple(i);
+        else if (tech === 'shrine')          p = getShrine(i);
+        else if (tech === 'blue')            p = getBlue(i);
+        else if (tech === 'ten_shadows')     p = getTenShadows(i);
+        else if (tech === 'transfiguration') p = getTransfiguration(i);
+        else if (tech === 'black_flash')     p = getBlackFlash(i);
+
+        targetPositions[i*3]   = p.x;
+        targetPositions[i*3+1] = p.y;
+        targetPositions[i*3+2] = p.z;
+        targetColors[i*3]      = p.r;
+        targetColors[i*3+1]    = p.g;
+        targetColors[i*3+2]    = p.b;
+        targetSizes[i]         = p.s;
+    }
+}
+
+const cameraUtils = new Camera(videoElement, {
+    onFrame: async () => {
+        canvasElement.width  = videoElement.videoWidth;
+        canvasElement.height = videoElement.videoHeight;
+        await hands.send({ image: videoElement });
+    },
+    width: 640, height: 480
+});
+cameraUtils.start();
+
+let blackFlashFlicker = 0;
+
+function animate() {
+    requestAnimationFrame(animate);
+
+    if (shakeIntensity > 0) {
+        renderer.domElement.style.transform = `translate(${(Math.random()-0.5)*shakeIntensity*40}px, ${(Math.random()-0.5)*shakeIntensity*40}px)`;
+    } else {
+        renderer.domElement.style.transform = 'translate(0,0)';
+    }
+
+    const pos = particles.geometry.attributes.position.array;
+    const col = particles.geometry.attributes.color.array;
+    const siz = particles.geometry.attributes.size.array;
+
+    for (let i = 0; i < COUNT * 3; i++) {
+        pos[i] += (targetPositions[i] - pos[i]) * 0.1;
+        col[i] += (targetColors[i]    - col[i]) * 0.1;
+    }
+    for (let i = 0; i < COUNT; i++) {
+        siz[i] += (targetSizes[i] - siz[i]) * 0.1;
+    }
+
+    if (currentTech === 'black_flash') {
+        blackFlashFlicker += 0.3;
+        const flicker = Math.sin(blackFlashFlicker) * 0.5 + 0.5;
+        bloomPass.strength = 2.5 + flicker * 3.5;
+    }
+
+    particles.geometry.attributes.position.needsUpdate = true;
+    particles.geometry.attributes.color.needsUpdate    = true;
+    particles.geometry.attributes.size.needsUpdate     = true;
+
+    if (currentTech === 'red') {
+        particles.rotation.z -= 0.01;
+    } else if (currentTech === 'purple') {
+        particles.rotation.z += 0.02;
+        particles.rotation.y += 0.05;
+    } else if (currentTech === 'shrine') {
+        particles.rotation.set(0, 0, 0);
+    } else if (currentTech === 'blue') {
+        particles.rotation.z -= 0.008;
+        particles.rotation.x += 0.003;
+    } else if (currentTech === 'ten_shadows') {
+        particles.rotation.y += 0.004;
+    } else if (currentTech === 'transfiguration') {
+        particles.rotation.z += 0.006;
+        particles.rotation.x += 0.004;
+    } else if (currentTech === 'black_flash') {
+        particles.rotation.z += 0.035;
+    } else {
+        particles.rotation.y += 0.005;
+    }
+
+    composer.render();
+}
+animate();
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
+});
